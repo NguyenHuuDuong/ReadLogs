@@ -1,9 +1,12 @@
 package dev.vnpay.form;
+
+import dev.vnpay.model.LogATGModel;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.DefaultTableModel;
@@ -11,7 +14,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 
-public class LogForm extends JFrame{
+public class LogForm extends JFrame {
     private JPanel JPanel_Main;
     private JTextArea textArea_Content;
     private JButton btn_Convert;
@@ -19,252 +22,178 @@ public class LogForm extends JFrame{
     private JTable tbl_Output;
     private JButton btn_SelectFile;
     private JTextArea textArea_ErrorLog;
-    public LogForm(){
+
+    public LogForm() {
         setTitle("LOGGING TO CONVERT...");
         setContentPane(JPanel_Main);
-        setSize(1300,800);
+        setSize(1300, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setVisible(true);
         setResizable(false);
         DefaultTableModel defaultTableModel = new DefaultTableModel();
-        String[] columnNames = {"ITEM","TIME","USER","PAN","POSEntryMode","CVM","ErrorDescription","TransactionAmount","Track2","PINBlock","TransactionKSN","MID","TID","BankCode","CurrencyCode","CardHolderName","BillNumber","ExpireDate","AppName","AppID","TC","AppVersion","IsEasyPayment","RequestDateTime","RequestID"};
-        for(int i = 0; i < columnNames.length ; i++){
-            defaultTableModel.addColumn(columnNames[i]);
+        String[] columnNames = {"ITEM", "TIME", "USER", "PAN", "POSEntryMode", "CVM", "ErrorDescription", "TransactionAmount", "Track2", "PINBlock", "TransactionKSN", "MID", "TID", "BankCode", "CurrencyCode", "CardHolderName", "BillNumber", "ExpireDate", "AppName", "AppID", "TC", "AppVersion", "IsEasyPayment", "RequestDateTime", "RequestID"};
+        for (String column : columnNames) {
+            defaultTableModel.addColumn(column);
         }
         tbl_Output.setModel(defaultTableModel);
-        DefaultTableModel tblModel = (DefaultTableModel)tbl_Output.getModel();
-//        for(int i = 0; i < columnNames.length ; i++){
-//            tblModel.addColumn(columnNames[i]);
-//        }
-//        tblModel.addColumn("ITEM");
-//        tblModel.addColumn("TIME");
-//        tblModel.addColumn("USER");
-//        tblModel.addColumn("PAN");
-//        tblModel.addColumn("POSEntryMode");
-//        tblModel.addColumn("CVM");
-//        tblModel.addColumn("ErrorDescription");
-//        tblModel.addColumn("TransactionAmount");
-//        tblModel.addColumn("Track2");
-//        tblModel.addColumn("PINBlock");
-//        tblModel.addColumn("TransactionKSN");
-//        tblModel.addColumn("MID");
-//        tblModel.addColumn("TID");
-//        tblModel.addColumn("BankCode");
-//        tblModel.addColumn("CurrencyCode");
-//        tblModel.addColumn("CardHolderName");
-//        tblModel.addColumn("BillNumber");
-//        tblModel.addColumn("ExpireDate");
-//        tblModel.addColumn("AppName");
-//        tblModel.addColumn("AppID");
-//        tblModel.addColumn("TC");
-//        tblModel.addColumn("AppVersion");
-//        tblModel.addColumn("IsEasyPayment");
-//        tblModel.addColumn("RequestDateTime");
-//        tblModel.addColumn("RequestID");
+        DefaultTableModel tblModel = (DefaultTableModel) tbl_Output.getModel();
         btn_Convert.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 tblModel.setRowCount(0);
                 textArea_ErrorLog.setText("");
+                LogATGModel logATGModel = new LogATGModel();
                 String input = textArea_Content.getText().trim();
-                if(input.equals("")){
-                    JOptionPane.showMessageDialog(null,"Please input data to text Area....");
+                if (input.equals("")) {
+                    JOptionPane.showMessageDialog(null, "Please input data to text Area....");
                     return;
                 }
-                String [] arr_Logs = input.split("======================================================================");
-                for(int i =0 ; i < arr_Logs.length; i++){
-                    String log_info = arr_Logs[i].toString();
-                    //System.out.println(log_info);
-                    String error_log = log_info.substring(0, 21);
-                    try{
-                        String str = arr_Logs[i].toString();
-                        String str_01 = str.substring(str.indexOf(""), str.indexOf(". Body"));
+                String[] arr_Logs = input.split("======================================================================");
+                for (int i = 0; i < arr_Logs.length; i++) {
+                    String log_info = arr_Logs[i];
+                    try {
+                        String str = arr_Logs[i];
                         // Process for Array 01
-                        //System.out.println("Str_01: "+ str_01);
-                        String time = str_01.substring(0,22).trim();
-                        String user_tem = str_01.substring(str_01.lastIndexOf(":", str_01.length()));
-                        String user = user_tem.substring(1,user_tem.length()).trim();
-//                        System.out.println("Time: " + time);
-//                        System.out.println("User: "+ user);
+                        String str_01 = str.substring(str.indexOf(""), str.indexOf(". Body"));
+                        logATGModel.setTIME(str_01.substring(0, 22).trim());
+                        logATGModel.setUSER(str_01.substring(str_01.lastIndexOf("User:") + 6).trim());
                         // Process for Array 02
                         String str_02 = str.substring(str.indexOf('{'), str.indexOf("} [") + 1);
-                        //System.out.println("Str_02: "+ str_02);
-                        String RequestDateTime = "";
-                        String RequestID = "";
                         JSONObject jsonObject = new JSONObject(str_02);
-                        if(jsonObject.has("RequestDateTime")){
-                            RequestDateTime = jsonObject.getString("RequestDateTime");
-                        }else {
-                            RequestDateTime = "";
+                        if (jsonObject.has("RequestDateTime")) {
+                            logATGModel.setRequestDateTime(jsonObject.getString("RequestDateTime"));
+                        } else {
+                            logATGModel.setRequestDateTime("");
                         }
-                        if(jsonObject.has("RequestID")){
-                            RequestID = jsonObject.getString("RequestID");
-                        }else {
-                            RequestID = "";
+                        if (jsonObject.has("RequestID")) {
+                            logATGModel.setRequestID(jsonObject.getString("RequestID"));
+                        } else {
+                            logATGModel.setRequestID("");
                         }
                         JSONObject data = jsonObject.getJSONObject("Data");
-                        //System.out.println("DATA: " + data);
-                        String PAN ="";
-                        String CVM ="";
-                        String POSEntryMode ="";
-                        String TransactionAmount="";
-                        String Track2 = "";
-                        String PINBlock = "";
-                        String TransactionKSN = "";
-                        String MID = "";
-                        String TID = "";
-                        String BankCode = "";
-                        String CurrencyCode = "";
-                        String CardHolderName = "";
-                        String BillNumber = "";
-                        String ExpireDate = "";
-                        String AppName = "";
-                        String AppID = "";
-                        String TC = "";
-                        String AppVersion = "";
-                        String IsEasyPayment = "";
-                        if(data.has("PAN")){
-                            PAN = data.getString("PAN");
-                        }else {
-                            PAN = "";
+                        if (data.has("PAN")) {
+                            logATGModel.setPAN(data.getString("PAN"));
+                        } else {
+                            logATGModel.setPAN("");
                         }
-                        if (data.has("POSEntryMode")){
-                            POSEntryMode = data.getString("POSEntryMode");
-                        }else {
-                            POSEntryMode = "";
+                        if (data.has("POSEntryMode")) {
+                            logATGModel.setPOSEntryMode(data.getString("POSEntryMode"));
+                        } else {
+                            logATGModel.setPOSEntryMode("");
                         }
-                        if(data.has("CVM")){
-                            CVM = data.getString("CVM");
-                        }else {
-                            CVM = "";
+                        if (data.has("CVM")) {
+                            logATGModel.setCVM(data.getString("CVM"));
+                        } else {
+                            logATGModel.setCVM("");
                         }
-                        if(data.has("TransactionAmount")){
-                            TransactionAmount = String.valueOf(data.getInt("TransactionAmount"));
-                        }else {
-                            TransactionAmount = "";
+                        if (data.has("TransactionAmount")) {
+                            logATGModel.setTransactionAmount(String.valueOf(data.getInt("TransactionAmount")));
+                        } else {
+                            logATGModel.setTransactionAmount("");
                         }
-                        if(data.has("Track2")){
-                            Track2 = data.getString("Track2");
-                        }else {
-                            Track2 = "";
+                        if (data.has("Track2")) {
+                            logATGModel.setTrack2(data.getString("Track2"));
+                        } else {
+                            logATGModel.setTrack2("");
                         }
-                        if(data.has("PINBlock")){
-                            PINBlock = data.getString("PINBlock");
-                        }else {
-                            PINBlock = "";
+                        if (data.has("PINBlock")) {
+                            logATGModel.setPINBlock(data.getString("PINBlock"));
+                        } else {
+                            logATGModel.setPINBlock("");
                         }
-                        if(data.has("TransactionKSN")){
-                            TransactionKSN = data.getString("TransactionKSN");
-                        }else {
-                            TransactionKSN = "";
+                        if (data.has("TransactionKSN")) {
+                            logATGModel.setTransactionKSN(data.getString("TransactionKSN"));
+                        } else {
+                            logATGModel.setTransactionKSN("");
                         }
-                        if(data.has("MID")){
-                            MID = data.getString("MID");
-                        }else {
-                            MID = "";
+                        if (data.has("MID")) {
+                            logATGModel.setMID(data.getString("MID"));
+                        } else {
+                            logATGModel.setMID("");
                         }
-                        if(data.has("TID")){
-                            TID = data.getString("TID");
-                        }else {
-                            TID = "";
+                        if (data.has("TID")) {
+                            logATGModel.setTID(data.getString("TID"));
+                        } else {
+                            logATGModel.setTID("");
                         }
-                        if(data.has("BankCode")){
-                            BankCode = data.getString("BankCode");
-                        }else {
-                            BankCode = "";
+                        if (data.has("BankCode")) {
+                            logATGModel.setBankCode(data.getString("BankCode"));
+                        } else {
+                            logATGModel.setBankCode("");
                         }
-                        if(data.has("CurrencyCode")){
-                            CurrencyCode = data.getString("CurrencyCode");
-                        }else {
-                            CurrencyCode = "";
+                        if (data.has("CurrencyCode")) {
+                            logATGModel.setCurrencyCode(data.getString("CurrencyCode"));
+                        } else {
+                            logATGModel.setCurrencyCode("");
                         }
-                        if(data.has("CardHolderName")){
-                            CardHolderName = data.getString("CardHolderName");
-                        }else {
-                            CardHolderName = "";
+                        if (data.has("CardHolderName")) {
+                            logATGModel.setCardHolderName(data.getString("CardHolderName"));
+                        } else {
+                            logATGModel.setCardHolderName("");
                         }
-                        if(data.has("BillNumber")){
-                            BillNumber = data.getString("BillNumber");
-                        }else {
-                            BillNumber = "";
+                        if (data.has("BillNumber")) {
+                            logATGModel.setBillNumber(data.getString("BillNumber"));
+                        } else {
+                            logATGModel.setBillNumber("");
                         }
-                        if(data.has("ExpireDate")){
-                            ExpireDate = data.getString("ExpireDate");
-                        }else {
-                            ExpireDate = "";
+                        if (data.has("ExpireDate")) {
+                            logATGModel.setExpireDate(data.getString("ExpireDate"));
+                        } else {
+                            logATGModel.setExpireDate("");
                         }
-                        if(data.has("AppName")){
-                            AppName = data.getString("AppName");
-                        }else {
-                            AppName = "";
+                        if (data.has("AppName")) {
+                            logATGModel.setAppName(data.getString("AppName"));
+                        } else {
+                            logATGModel.setAppName("");
                         }
-                        if(data.has("AppID")){
-                            AppID = data.getString("AppID");
-                        }else {
-                            AppID = "";
+                        if (data.has("AppID")) {
+                            logATGModel.setAppID(data.getString("AppID"));
+                        } else {
+                            logATGModel.setAppID("");
                         }
-                        if(data.has("TC")){
-                            TC = data.getString("TC");
-                        }else {
-                            TC = "";
+                        if (data.has("TC")) {
+                            logATGModel.setTC(data.getString("TC"));
+                        } else {
+                            logATGModel.setTC("");
                         }
-                        if(data.has("AppVersion")){
-                            AppVersion = data.getString("AppVersion");
-                        }else {
-                            AppVersion = "";
+                        if (data.has("AppVersion")) {
+                            logATGModel.setAppVersion(data.getString("AppVersion"));
+                        } else {
+                            logATGModel.setAppVersion("");
                         }
-                        if(data.has("IsEasyPayment")){
-                            IsEasyPayment = data.get("IsEasyPayment").toString();
-                        }else {
-                            IsEasyPayment = "";
+                        if (data.has("IsEasyPayment")) {
+                            logATGModel.setIsEasyPayment(data.get("IsEasyPayment").toString());
+                        } else {
+                            logATGModel.setIsEasyPayment("");
                         }
-//                        System.out.println("PAN: " + PAN);
-//                        System.out.println("POSEntryMode: " + POSEntryMode);
-//                        System.out.println("CVM: " + CVM);
-                        // process for Array 03
+                        // Process for Array 03
                         String str_03 = str.substring(str.indexOf("[{"), str.indexOf("]}]") + 3);
-                        //System.out.println("Str_03: "+ str_03);
                         JSONArray array_03 = new JSONArray(str_03);
-                        //System.out.println("array_03: " + array_03);
-                        String ErrorDescription = "";
-                        for (int k=0 ; k < array_03.length(); k++){
+//                        String ErrorDescription = "";
+                        for (int k = 0; k < array_03.length(); k++) {
                             JSONObject object = array_03.getJSONObject(k);
-                            if(object.has("ErrorDescription")){
-                                ErrorDescription = object.getJSONArray("ErrorDescription").toString();
-                            }else {
-                                ErrorDescription ="";
+                            if (object.has("ErrorDescription")) {
+                                logATGModel.setErrorDescription(object.getJSONArray("ErrorDescription").toString());
+                            } else {
+                                logATGModel.setErrorDescription("");
                             }
-//                            try{
-//                                JSONObject object = array_03.getJSONObject(k);
-//                                if(object.has("ErrorDescription")){
-//                                    ErrorDescription = object.getJSONArray("ErrorDescription").toString();
-//                                }else {
-//                                    ErrorDescription ="";
-//                                }
-//                                //System.out.println("ErrorDescription: " + ErrorDescription);
-//                            }catch (Exception ex){
-//                                //System.out.println(ex);
-//                                continue;
-//                            }
                         }
-                        String item = String.valueOf(i+1);
-                        String objectData[] = {item,time,user,PAN,CVM,POSEntryMode, ErrorDescription, TransactionAmount, Track2, PINBlock, TransactionKSN,MID,TID,BankCode,CurrencyCode,CardHolderName, BillNumber, ExpireDate, AppName, AppID, TC, AppVersion, IsEasyPayment, RequestDateTime,RequestID};
+                        String item = String.valueOf(i + 1);
+                        String objectData[] = {item, logATGModel.getTIME(), logATGModel.getUSER(), logATGModel.getPAN(), logATGModel.getCVM(), logATGModel.getPOSEntryMode(), logATGModel.getErrorDescription(), logATGModel.getTransactionAmount(), logATGModel.getTrack2(), logATGModel.getPINBlock(), logATGModel.getTransactionKSN(), logATGModel.getMID(), logATGModel.getTID(), logATGModel.getBankCode(), logATGModel.getCurrencyCode(), logATGModel.getCardHolderName(), logATGModel.getBillNumber(), logATGModel.getExpireDate(), logATGModel.getAppName(), logATGModel.getAppID(), logATGModel.getTC(), logATGModel.getAppVersion(), logATGModel.getIsEasyPayment(), logATGModel.getRequestDateTime(), logATGModel.getRequestID()};
                         tblModel.addRow(objectData);
-                        //System.out.println("=================");
-                    }catch (Exception ex){
+                    } catch (Exception ex) {
                         textArea_ErrorLog.setText(textArea_ErrorLog.getText().trim() + "\n" + log_info);
                         continue;
                     }
                 }
-                //JOptionPane.showMessageDialog(null,"Convert success.");
             }
         });
         btn_Export.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(tblModel.getRowCount() <= 0){
-                    JOptionPane.showMessageDialog(null,"No data to export");
+                if (tblModel.getRowCount() <= 0) {
+                    JOptionPane.showMessageDialog(null, "No data to export");
                     return;
                 }
                 JFileChooser chooser = new JFileChooser();
@@ -276,12 +205,12 @@ public class LogForm extends JFrame{
                         FileWriter excel = new FileWriter(file + ".xls");
                         BufferedWriter bwrite = new BufferedWriter(excel);
                         //DefaultTableModel model = (DefaultTableModel) table.getModel();
-                        // ten Cot
+                        // columnName
                         for (int j = 0; j < tblModel.getColumnCount(); j++) {
                             bwrite.write(tblModel.getColumnName(j) + "\t");
                         }
                         bwrite.write("\n");
-                        // Lay du lieu dong
+                        // Get row data
                         for (int j = 0; j < tblModel.getRowCount(); j++) {
                             for (int k = 0; k < tblModel.getColumnCount(); k++) {
                                 bwrite.write(tblModel.getValueAt(j, k) + "\t");
@@ -299,6 +228,7 @@ public class LogForm extends JFrame{
                     }
                 }
             }
+
             public void addNewSheet(String filePath, String newSheetName) {
                 XSSFWorkbook workbook = new XSSFWorkbook();
                 XSSFSheet sheet = workbook.createSheet(newSheetName);
@@ -321,7 +251,7 @@ public class LogForm extends JFrame{
                         }
                     }
                 }
-                try(FileOutputStream outputStream = new FileOutputStream(filePath)) {
+                try (FileOutputStream outputStream = new FileOutputStream(filePath)) {
                     workbook.write(outputStream);
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
@@ -342,8 +272,7 @@ public class LogForm extends JFrame{
                 int returnValue = jfc.showOpenDialog(null);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
                     File selectedFile = jfc.getSelectedFile();
-                    //System.out.println(selectedFile.getAbsolutePath());
-                    try(BufferedReader br = new BufferedReader(new FileReader(selectedFile.getAbsolutePath()))) {
+                    try (BufferedReader br = new BufferedReader(new FileReader(selectedFile.getAbsolutePath()))) {
                         StringBuilder sb = new StringBuilder();
                         String line = br.readLine();
                         while (line != null) {
@@ -351,10 +280,7 @@ public class LogForm extends JFrame{
                             sb.append(System.lineSeparator());
                             line = br.readLine();
                         }
-                        //String everything = sb.toString();
-                        //System.out.println(sb.toString());
                         textArea_Content.setText(sb.toString());
-                        //JOptionPane.showMessageDialog(null,"Import success.");
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
